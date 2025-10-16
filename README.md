@@ -14,7 +14,7 @@ Install dependencies:
 
 ## System Identification
 
-Identify a system from a dataset:
+Identify a system from a dataset: [System Identification Script](./system-identification.py)
 
 ```
 ./system-identification.py
@@ -44,10 +44,10 @@ Mean Squared Error: 0.0000%, Fit: 100.00%
 
 ## PID Controller Tuning
 
-Tune a PID controller:
+Tune a PID controller: [Tuning Script](./tune.py)
 
 ```
-./tuning.py
+./tune.py
 ```
 
 Parameters at the top of the script:
