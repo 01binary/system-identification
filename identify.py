@@ -34,19 +34,36 @@ time = data.iloc[:, 0].values
 inputs = data.iloc[:, 1].values
 measurements = data.iloc[:, 2].values
 
+#
 # Resample data to regular timestep
-df = pd.DataFrame({
-  'time': time,
-  'inputs': inputs,
-  'measurements': measurements
-})
+#
 
-resampled = df.groupby('time').mean().reset_index()
-time = resampled['time'].values
-inputs = resampled['inputs'].values
-measurements = resampled['measurements'].values
+# Remove duplicate timestamps by averaging, then sort by time
+df = pd.DataFrame({'time': time, 'inputs': inputs, 'measurements': measurements})
+resampled = (
+    df.groupby('time', as_index=False)
+      .mean()
+      .sort_values('time', kind='mergesort')
+)
+uniqueSamples = resampled['time'].to_numpy()
 
-# Select time range
+# Estimate timestep as median of successive diffs, less sensitive to jitter than mean
+timeStep = np.median(np.diff(uniqueSamples))
+
+# Build a regular grid without floating-point drift or extrapolation
+t0 = uniqueSamples[0]
+t1 = uniqueSamples[-1]
+steps = int(round((t1 - t0) / timeStep)) + 1
+regularTime = np.linspace(t0, t0 + (steps - 1) * timeStep, steps)
+
+# Interpolate onto the regular grid
+spanMask = (regularTime >= t0) & (regularTime <= t1)
+regularTime = regularTime[spanMask]
+inputs = np.interp(regularTime, uniqueSamples, resampled['inputs'].to_numpy())
+measurements = np.interp(regularTime, uniqueSamples, resampled['measurements'].to_numpy())
+time = regularTime
+
+# Select analysis window after resampling
 mask = (time >= start) & (time <= end)
 time = time[mask]
 inputs = inputs[mask]
