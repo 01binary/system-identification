@@ -4,29 +4,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 
-#
 # Parameters
-#
 
 # Controller type: P, PI, PID, PD, PIV
-controllerType = "PIV"
+controllerType = "PID"
 # Responsiveness (0=Slower, 1=Faster)
 responsiveness = 0.5
 # Transient behavior (0=Aggressive, 1=Robust)
 transientBehavior = 0.5
 
-#
 # Model
-#
 
-# Time step (seconds)
 timestep = 0.01
+measurementCoefficients = [-1.96399484, 0.96400979]
+inputCoefficients = [1.37622864e-04, 2.55175613e-05, 4.77652206e-05]
 
-# State transition parameters
-stateTransition = [-1.96399484, 0.96400979]
-
-# Input parameters
-input = [1.37622864e-04, 2.55175613e-05, 4.77652206e-05]
+# Tuning
 
 def tune(controller_type, responsiveness, transient_behavior):
     # Target specifications
@@ -123,7 +116,7 @@ def continuous_to_discrete(Kp, Ki, Kd, Kv, timestep):
     Kv_d = Kv * 2.0 / timestep
     return Kp_d, Ki_d, Kd_d, Kv_d
 
-def step_response(Kp, Ki, Kd, Kv, controller_type):
+def step_response(Kp, Ki, Kd, Kv):
     """
     Analyze step response and return performance metrics.
     Toy model: we fold Kv into damping similarly to derivative action.
@@ -166,26 +159,25 @@ def step_response(Kp, Ki, Kd, Kv, controller_type):
         y = np.ones_like(t)
         return t, y, 0.1, 0.5, 0.0
 
-# Main execution
 print(f"{controllerType} Tuning\n")
 print(f"Responsiveness: {responsiveness} (0=Slower, 1=Faster)")
 print(f"Transient Behavior: {transientBehavior} (0=Aggressive, 1=Robust)")
 print(f"Time Step: {timestep} seconds\n")
 
-# Convert ARX model to transfer function (display only)
-num = input
-den = np.concatenate([[1], stateTransition])
+# Display ARX model as a transfer function
+num = inputCoefficients
+den = np.concatenate([[1], measurementCoefficients])
 
 print("Transfer Function:\n")
-print(f"       {input[0]:.6f}s² + {input[1]:.6f}s + {input[2]:.6f}")
+print(f"       {inputCoefficients[0]:.6f}s² + {inputCoefficients[1]:.6f}s + {inputCoefficients[2]:.6f}")
 print("G(s) = " + "─" * 50)
-print(f"       s² + {stateTransition[0]:.6f}s + {stateTransition[1]:.6f}\n")
+print(f"       s² + {measurementCoefficients[0]:.6f}s + {measurementCoefficients[1]:.6f}\n")
 
 # Tune (now returns Kv, too)
 Kp, Ki, Kd, Kv = tune(controllerType, responsiveness, transientBehavior)
 
 # Analyze step response (includes Kv)
-t, y, rise_time, settling_time, overshoot = step_response(Kp, Ki, Kd, Kv, controllerType)
+t, y, rise_time, settling_time, overshoot = step_response(Kp, Ki, Kd, Kv)
 
 # Convert to discrete gains (includes Kv)
 Kp_d, Ki_d, Kd_d, Kv_d = continuous_to_discrete(Kp, Ki, Kd, Kv, timestep)
